@@ -30,8 +30,6 @@ group:
         dest: .vscode/settings.json
     repos: |
       OrrisTech/seomate
-      OrrisTech/clawdgo
-      OrrisTech/adwhiz-landing
 
   # ── Partial sync (example) ──────────────────────────────────────────────
   # Uncomment and customize for repos that only need a subset of files.
