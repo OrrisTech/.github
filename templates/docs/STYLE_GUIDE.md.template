@@ -1,0 +1,133 @@
+# Terminology & Style Guide
+
+> Copy this template and fill in the sections for your project.
+
+## 1. Brand Voice
+
+### Tone Attributes
+
+- **Clear**: Say what you mean directly. Avoid jargon unless writing for a technical audience.
+- **Confident**: State things plainly. Avoid hedging ("we think", "maybe", "sort of").
+- **Concise**: Shorter is better. Cut filler words. One idea per sentence.
+- **Human**: Write like a knowledgeable person talking to another person. Not a press release.
+
+### Voice Examples
+
+| Instead of                              | Write                              |
+| --------------------------------------- | ---------------------------------- |
+| "We are pleased to announce..."         | "New: ..."                         |
+| "Utilize"                               | "Use"                              |
+| "In order to"                           | "To"                               |
+| "At this point in time"                 | "Now"                              |
+| "It should be noted that"              | (Just state the thing)             |
+
+## 2. Terminology Dictionary
+
+<!-- Establish consistent terms used throughout the product and content -->
+
+| Term (Use This)  | Not This                | Context / Notes               |
+| ---------------- | ----------------------- | ----------------------------- |
+| sign in          | log in, login (as verb) | "Log in" as noun/adj is OK    |
+| sign up          | register, create account|                               |
+| email            | e-mail                  |                               |
+| website          | web site                |                               |
+| open source      | open-source (adj OK)    | No hyphen as noun             |
+| setup (noun)     | set-up                  | "set up" as verb (two words)  |
+
+## 3. Capitalization Rules
+
+- **Product name**: Always capitalize as branded (e.g., "OrrisTech")
+- **Feature names**: Lowercase unless it is a branded product feature
+- **Headings**: Sentence case ("Getting started with the API") not title case
+- **Buttons**: Sentence case ("Create account") not all caps
+- **UI labels**: Sentence case throughout
+- **Acronyms**: All caps, no periods (API, URL, SEO, HTML)
+
+## 4. Abbreviations
+
+| Abbreviation | Full Form                   | Use When                     |
+| ------------ | --------------------------- | ---------------------------- |
+| API          | Application Programming Interface | Always fine to use       |
+| URL          | Uniform Resource Locator    | Always fine to use           |
+| CTA          | Call to action              | Internal docs only           |
+| SEO          | Search engine optimization  | Always fine to use           |
+| UI           | User interface              | Technical audiences          |
+| UX           | User experience             | Technical audiences          |
+| a11y         | Accessibility               | Internal/dev docs only       |
+| i18n         | Internationalization        | Internal/dev docs only       |
+
+## 5. Common Phrases
+
+### CTAs
+
+- "Get started" (primary)
+- "Learn more" (secondary)
+- "View docs" (for documentation links)
+- "Try it free" (for trial signups)
+
+### Confirmation / Success
+
+- "Done." or "Saved." (not "Successfully saved!")
+- "Your changes have been saved." (for important actions)
+
+### Errors
+
+- Lead with what happened, then what to do: "Could not save changes. Check your connection and try again."
+- Never blame the user: "Something went wrong" not "You entered an invalid value"
+
+## 6. Words to Avoid
+
+### AI Slop and Overused Marketing Words
+
+Avoid these words and phrases in product copy, blog posts, and documentation:
+
+| Avoid                  | Use Instead                        |
+| ---------------------- | ---------------------------------- |
+| revolutionize          | improve, change, simplify          |
+| game-changing          | (describe the specific benefit)    |
+| cutting-edge           | modern, current, latest            |
+| leverage (as verb)     | use, take advantage of             |
+| synergy                | (describe what actually happens)   |
+| empower                | help, enable, let                  |
+| seamless               | smooth, easy, simple               |
+| robust                 | strong, reliable, thorough         |
+| best-in-class          | (prove it with specifics)          |
+| world-class            | (prove it with specifics)          |
+| delve                  | explore, examine, look at          |
+| utilize                | use                                |
+| facilitate             | help, support, make possible       |
+| innovative             | (describe the actual innovation)   |
+| holistic               | complete, full, comprehensive      |
+| paradigm               | approach, model, pattern           |
+| disrupt                | change, challenge, rethink         |
+| ecosystem              | (be specific: tools, community, platform) |
+| scalable               | (explain how it scales)            |
+| mission-critical       | important, essential               |
+
+## 7. Formatting Rules
+
+### Numbers
+
+- Spell out one through nine, use digits for 10+
+- Always use digits for technical values: "4px", "3 columns", "2 retries"
+- Use commas in numbers >= 1,000
+- Use "%" not "percent" in UI; spell out in prose
+
+### Dates and Times
+
+- Format: "February 20, 2026" in prose, "2026-02-20" in code/data
+- Times: "3:00 PM EST" (12-hour with timezone)
+- Relative time in UI: "2 hours ago", "Yesterday"
+
+### Lists
+
+- Use bullet points for unordered lists, numbered lists for sequential steps
+- Start each item with a capital letter
+- No periods at the end of list items unless they are complete sentences
+- Keep list items parallel in structure
+
+### Code in Documentation
+
+- Use backticks for inline code: `componentName`
+- Use fenced code blocks with language tags for multi-line code
+- Include a brief comment if the code is not self-explanatory

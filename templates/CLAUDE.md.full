@@ -1,0 +1,120 @@
+# Copy this to your repo root as `CLAUDE.md` and customize for your project.
+# Remove any sections that don't apply. Add project-specific sections as needed.
+
+# Project Name
+
+## Overview
+
+<!-- Brief description of what this project does and why it exists -->
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript 5
+- **Styling**: Tailwind CSS 4
+- **Database**: <!-- Supabase / Prisma / Drizzle / etc. -->
+- **Auth**: <!-- NextAuth / Clerk / Supabase Auth / etc. -->
+- **Deployment**: Vercel (team: Orris, `--scope orris`)
+- **Testing**: Vitest (unit), Playwright (e2e)
+
+## Project Structure
+
+```
+src/
+  app/              # Next.js App Router pages and layouts
+  components/       # React components
+    ui/             # Shared/primitive UI components
+    [feature]/      # Feature-specific components
+  lib/              # Utility functions, API clients, shared logic
+  hooks/            # Custom React hooks
+  types/            # TypeScript type definitions
+  styles/           # Global styles and Tailwind config
+  constants/        # App-wide constants and configuration
+tests/
+  unit/             # Vitest unit tests
+  e2e/              # Playwright end-to-end tests
+public/             # Static assets
+docs/               # Project documentation
+```
+
+## Development Commands
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start dev server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run unit tests
+pnpm test
+
+# Run unit tests in watch mode
+pnpm test:watch
+
+# Run e2e tests
+pnpm test:e2e
+
+# Lint
+pnpm lint
+
+# Type check
+pnpm typecheck
+
+# Format code
+pnpm format
+```
+
+## Architecture Decisions
+
+<!-- Document key architectural choices and the reasoning behind them -->
+
+- **State management**: <!-- Why you chose X over Y -->
+- **Data fetching**: <!-- Server components, React Query, SWR, etc. -->
+- **Routing**: <!-- App Router conventions, dynamic routes -->
+- **API design**: <!-- REST, tRPC, Server Actions -->
+
+## Code Conventions
+
+- All comments in English, detailed enough for newcomers to understand
+- Prefer mature open-source solutions over custom implementations
+- Components are split logically and placed in appropriate directories
+- Named exports for components, default exports only for pages
+- Use `@/` path alias for imports from `src/`
+- Colocate tests next to source files or in `tests/unit/` with matching paths
+
+## Testing Strategy
+
+- **Unit tests**: Vitest with React Testing Library for components and utility functions
+- **E2E tests**: Playwright for critical user flows
+- **Coverage thresholds**: 80% statements, 75% branches, 80% functions, 80% lines
+- All code changes require corresponding unit tests
+- Tests must pass before merging
+
+## Environment Variables
+
+<!-- List required environment variables (DO NOT include actual values) -->
+
+```bash
+# .env.local
+DATABASE_URL=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+## Deployment
+
+- **Platform**: Vercel
+- **Team**: Orris (`--scope orris`)
+- **Production branch**: `main`
+- **Preview deployments**: Enabled for all PRs
+- **Environment variables**: Configured in Vercel dashboard
+
+## Performance
+
+- Performance optimizations must include benchmark data
+- Database operations must account for concurrency safety
+- Target Lighthouse scores: Performance >= 70, Accessibility >= 90, Best Practices >= 85, SEO >= 90

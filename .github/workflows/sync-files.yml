@@ -1,0 +1,50 @@
+# Sync org standard files to all configured repos.
+# Uses BetaHuhn/repo-file-sync-action to open PRs in target repos whenever
+# files in sync/ are updated, on a weekly schedule, or via manual trigger.
+#
+# Security note: This workflow does not use any untrusted inputs in run commands.
+# All configuration is static and comes from the repo's own sync-config.yml.
+name: Sync Org Files
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sync/**"
+      - "sync-config.yml"
+  schedule:
+    # Run weekly on Sunday at 09:00 UTC
+    - cron: "0 9 * * 0"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync files to repos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run file sync
+        uses: BetaHuhn/repo-file-sync-action@v1
+        with:
+          # Personal access token with repo scope for cross-repo access.
+          # Create a fine-grained PAT with "Contents: Read and write" and
+          # "Pull requests: Read and write" permissions for the OrrisTech org.
+          GH_PAT: ${{ secrets.ORG_SYNC_PAT }}
+
+          # Path to the sync configuration file
+          CONFIG_PATH: sync-config.yml
+
+          # PR settings
+          PR_LABELS: |
+            sync
+            automated
+          COMMIT_MESSAGE: "chore: sync org standards"
+          PR_BODY: >
+            This PR was automatically created by the org file sync workflow.
+            It syncs the latest org standard files from the .github repo.
+            Review the changes and merge when ready.
+
+          # Skip PRs if there are no changes
+          SKIP_CLEANUP: false

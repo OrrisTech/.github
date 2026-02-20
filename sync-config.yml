@@ -1,0 +1,46 @@
+# BetaHuhn/repo-file-sync-action configuration
+# This file defines which files from the sync/ directory are pushed to org repos.
+#
+# How it works:
+#   1. Files in sync/ are the "source of truth" for org standards.
+#   2. The sync-files.yml workflow runs on push to sync/, on a weekly schedule,
+#      or via manual dispatch.
+#   3. For each repo listed below, a PR is opened with any file changes.
+#
+# To add more repos:
+#   - Add the repo name under the `repos:` key in "OrrisTech/repo-name" format.
+#   - It's recommended to add repos in batches of 2-3 at a time and verify
+#     the sync PRs look correct before adding more.
+#   - Repos that aren't ready for all standards can be placed in a separate
+#     group with a subset of files.
+
+group:
+  # ── Full standards sync ──────────────────────────────────────────────────
+  # These repos receive all org standard files.
+  - files:
+      - source: sync/.claude/org-rules.md
+        dest: .claude/org-rules.md
+      - source: sync/.github/pull_request_template.md
+        dest: .github/pull_request_template.md
+      - source: sync/.github/workflows/ci.yml
+        dest: .github/workflows/ci.yml
+      - source: sync/lefthook.yml
+        dest: lefthook.yml
+      - source: sync/.vscode/settings.json
+        dest: .vscode/settings.json
+    repos: |
+      OrrisTech/seomate
+      OrrisTech/clawdgo
+      OrrisTech/adwhiz-landing
+
+  # ── Partial sync (example) ──────────────────────────────────────────────
+  # Uncomment and customize for repos that only need a subset of files.
+  # Useful for repos that have custom CI or non-standard project layouts.
+  #
+  # - files:
+  #     - source: sync/.claude/org-rules.md
+  #       dest: .claude/org-rules.md
+  #     - source: sync/.github/pull_request_template.md
+  #       dest: .github/pull_request_template.md
+  #   repos: |
+  #     OrrisTech/some-other-repo

@@ -1,0 +1,123 @@
+# SEO & Content Strategy
+
+> Copy this template and fill in the sections for your project.
+
+## 1. Target Keywords
+
+### Primary Keywords
+
+| Keyword | Search Volume | Difficulty | Intent       |
+| ------- | ------------- | ---------- | ------------ |
+|         |               |            |              |
+
+### Long-Tail Keywords
+
+| Keyword | Search Volume | Difficulty | Target Page  |
+| ------- | ------------- | ---------- | ------------ |
+|         |               |            |              |
+
+### Branded Keywords
+
+- <!-- brand + product -->
+- <!-- brand + feature -->
+
+## 2. Content Pillars
+
+<!-- Core topic areas that all content maps to -->
+
+| Pillar | Description | Target Persona | Key Topics |
+| ------ | ----------- | -------------- | ---------- |
+|        |             |                |            |
+
+## 3. Content Calendar
+
+### Monthly Cadence
+
+| Content Type   | Frequency  | Owner | Distribution Channels |
+| -------------- | ---------- | ----- | --------------------- |
+| Blog posts     |            |       |                       |
+| Landing pages  |            |       |                       |
+| Case studies   |            |       |                       |
+| Changelog      |            |       |                       |
+
+### Upcoming Content
+
+| Title | Type | Target Keyword | Target Date | Status |
+| ----- | ---- | -------------- | ----------- | ------ |
+|       |      |                |             |        |
+
+## 4. Internal Linking Strategy
+
+- **Hub pages**: <!-- List pillar/hub pages that link out to cluster content -->
+- **Cluster content**: <!-- Supporting pages that link back to hub pages -->
+- **Contextual links**: <!-- Rules for linking between blog posts, docs, product pages -->
+- **Navigation**: <!-- How the site structure supports SEO -->
+
+## 5. Technical SEO Checklist
+
+### Fundamentals
+
+- [ ] XML sitemap generated and submitted
+- [ ] robots.txt configured correctly
+- [ ] Canonical URLs set on all pages
+- [ ] Proper heading hierarchy (single H1 per page)
+- [ ] Meta titles and descriptions on all pages
+- [ ] Open Graph and Twitter Card meta tags
+- [ ] Favicon and apple-touch-icon
+
+### Performance
+
+- [ ] Core Web Vitals passing (LCP < 2.5s, INP < 200ms, CLS < 0.1)
+- [ ] Images optimized with next/image
+- [ ] Fonts self-hosted or preloaded
+- [ ] Minimal render-blocking resources
+
+### Crawlability
+
+- [ ] Clean URL structure (no query params for content pages)
+- [ ] Proper 301 redirects for moved pages
+- [ ] 404 page with helpful navigation
+- [ ] No orphan pages (every page reachable from navigation)
+- [ ] Pagination handled with rel="next"/"prev" or load more
+
+### Mobile
+
+- [ ] Mobile-friendly design (responsive)
+- [ ] Viewport meta tag set
+- [ ] Touch targets >= 48px
+- [ ] No horizontal scroll
+
+## 6. Structured Data Plan
+
+| Page Type    | Schema Type          | Key Properties              |
+| ------------ | -------------------- | --------------------------- |
+| Home         | Organization         | name, logo, url             |
+| Blog post    | Article              | headline, author, datePublished |
+| Product      | Product / SoftwareApplication | name, description, offers |
+| FAQ          | FAQPage              | mainEntity                  |
+| Pricing      | Product + Offer      | price, priceCurrency        |
+
+## 7. Analytics & Measurement
+
+### Tools
+
+- [ ] Google Search Console connected
+- [ ] Google Analytics 4 configured
+- [ ] Conversion goals defined
+
+### Key Metrics
+
+| Metric                | Target  | Measured With        |
+| --------------------- | ------- | -------------------- |
+| Organic traffic       |         | GA4                  |
+| Keyword rankings      |         | GSC / Ahrefs         |
+| Click-through rate    |         | GSC                  |
+| Bounce rate           |         | GA4                  |
+| Conversion rate       |         | GA4                  |
+| Core Web Vitals       | Pass    | PageSpeed Insights   |
+
+## 8. Competitor Analysis
+
+| Competitor | Domain Rating | Top Keywords | Content Strategy | Gaps / Opportunities |
+| ---------- | ------------- | ------------ | ---------------- | -------------------- |
+|            |               |              |                  |                      |

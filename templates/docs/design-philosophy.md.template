@@ -1,0 +1,130 @@
+# Design Philosophy
+
+> Copy this template and fill in the sections for your project.
+
+## 1. Design Principles
+
+<!-- Core beliefs that guide every design decision. Keep to 3-5 principles. -->
+
+1. **Clarity over cleverness** - Every element should have a clear purpose. Remove anything that does not serve the user.
+2. **Consistency builds trust** - Patterns, spacing, and interactions should feel predictable across the product.
+3. **Performance is a feature** - Fast interfaces respect the user's time. Never sacrifice speed for decoration.
+4. **Accessible by default** - Design for the widest range of users from the start, not as an afterthought.
+
+## 2. Color Palette
+
+### Brand Colors
+
+| Name       | Light Mode | Dark Mode | Usage                |
+| ---------- | ---------- | --------- | -------------------- |
+| Primary    |            |           | CTAs, links          |
+| Secondary  |            |           | Accents, highlights  |
+
+### Semantic Colors
+
+| Name       | Light Mode | Dark Mode | Usage                |
+| ---------- | ---------- | --------- | -------------------- |
+| Success    |            |           | Confirmations        |
+| Warning    |            |           | Caution states       |
+| Error      |            |           | Errors, destructive  |
+| Info       |            |           | Informational        |
+
+### Neutrals
+
+| Name       | Light Mode | Dark Mode | Usage                |
+| ---------- | ---------- | --------- | -------------------- |
+| Background |            |           | Page background      |
+| Surface    |            |           | Cards, panels        |
+| Border     |            |           | Dividers, outlines   |
+| Text       |            |           | Body copy            |
+| Muted      |            |           | Secondary text       |
+
+## 3. Typography
+
+| Role        | Font Family | Weight | Size    | Line Height | Usage              |
+| ----------- | ----------- | ------ | ------- | ----------- | ------------------ |
+| Heading 1   |             |        |         |             | Page titles        |
+| Heading 2   |             |        |         |             | Section headers    |
+| Heading 3   |             |        |         |             | Subsections        |
+| Body        |             |        |         |             | Paragraphs         |
+| Small       |             |        |         |             | Captions, labels   |
+| Mono        |             |        |         |             | Code, data         |
+
+### Font Loading Strategy
+
+- <!-- e.g., Self-hosted with next/font, preload critical weights -->
+
+## 4. Spacing System
+
+Use a consistent spacing scale based on multiples of 4px.
+
+| Token | Value | Common Use                    |
+| ----- | ----- | ----------------------------- |
+| xs    | 4px   | Tight gaps, icon padding      |
+| sm    | 8px   | Inline spacing, small gaps    |
+| md    | 16px  | Default component padding     |
+| lg    | 24px  | Section gaps, card padding    |
+| xl    | 32px  | Page section spacing          |
+| 2xl   | 48px  | Major section breaks          |
+| 3xl   | 64px  | Hero sections, page margins   |
+
+## 5. Component Guidelines
+
+### Buttons
+
+- Primary: Solid fill, used for the main action on a page (one per view)
+- Secondary: Outline or ghost style, for supporting actions
+- Destructive: Red-tinted, always requires confirmation for irreversible actions
+- Disabled: Reduced opacity, never remove from the DOM (preserve layout)
+
+### Forms
+
+- Labels above inputs, not as placeholders
+- Inline validation on blur, not on every keystroke
+- Error messages below the field with a descriptive message
+- Required fields indicated with a visual marker
+
+### Cards
+
+- Consistent border radius and shadow depth
+- Clear visual hierarchy: title, description, actions
+- Interactive cards should have hover/focus states
+
+## 6. Animation Guidelines
+
+Inspired by Emil Kowalski's animation principles:
+
+- **Purpose**: Every animation should serve a purpose - guide attention, show relationships, or provide feedback. Never animate for decoration alone.
+- **Duration**: Keep animations fast. 150-300ms for micro-interactions, 300-500ms for layout transitions. Anything over 500ms feels sluggish.
+- **Easing**: Use ease-out for enter animations (elements arriving), ease-in for exit animations (elements leaving), ease-in-out for transitions between states.
+- **Spring physics**: Prefer spring-based animations for natural movement. Small overshoot is acceptable; large bounce is not.
+- **Reduced motion**: Always respect `prefers-reduced-motion`. Replace motion with instant state changes or opacity fades.
+- **Stagger**: When animating lists, stagger by 30-50ms per item. Cap total stagger duration at ~300ms.
+- **Layout shifts**: Never cause layout shifts with animations. Use `transform` and `opacity` exclusively for performant animations.
+
+## 7. Accessibility Standards
+
+- **Target**: WCAG 2.1 AA compliance
+- **Color contrast**: Minimum 4.5:1 for normal text, 3:1 for large text
+- **Focus indicators**: Visible focus ring on all interactive elements (never `outline: none` without replacement)
+- **Keyboard navigation**: All functionality reachable via keyboard
+- **Screen readers**: Semantic HTML, ARIA labels where needed, meaningful alt text
+- **Touch targets**: Minimum 44x44px for touch devices
+- **Skip links**: "Skip to main content" link at the top of every page
+
+## 8. Mobile-First Approach
+
+- Design for the smallest viewport first, then enhance for larger screens
+- Breakpoints: sm (640px), md (768px), lg (1024px), xl (1280px), 2xl (1536px)
+- Touch interactions take priority over hover states
+- Bottom-anchored navigation and CTAs for thumb reachability
+- Content hierarchy should work in a single column
+
+## 9. Dark Mode Strategy
+
+- **Approach**: System preference by default, with user toggle that persists
+- **Implementation**: CSS custom properties or Tailwind `dark:` variants
+- **Do not**: Simply invert colors. Dark mode requires its own considered palette.
+- **Shadows**: Reduce or remove shadows in dark mode; use subtle borders or elevation via background color
+- **Images**: Provide dark mode variants where needed, or use subtle background blending
+- **Testing**: Test all states (hover, focus, active, disabled, error) in both modes

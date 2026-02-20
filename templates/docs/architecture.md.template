@@ -1,0 +1,116 @@
+# Architecture Documentation
+
+> Copy this template and fill in the sections for your project.
+
+## 1. System Overview
+
+<!-- High-level description of the system, its purpose, and how the major pieces fit together. Include a diagram if helpful. -->
+
+## 2. Tech Stack
+
+| Layer        | Technology             | Rationale |
+| ------------ | ---------------------- | --------- |
+| Framework    | Next.js 15 (App Router)|           |
+| Language     | TypeScript 5           |           |
+| Styling      | Tailwind CSS 4         |           |
+| Database     |                        |           |
+| Auth         |                        |           |
+| Hosting      | Vercel                 |           |
+| CI/CD        | GitHub Actions         |           |
+| Monitoring   |                        |           |
+
+## 3. Directory Structure
+
+```
+src/
+  app/              # Routes and layouts
+  components/       # React components
+    ui/             # Shared UI primitives
+  lib/              # Utilities, clients, shared logic
+  hooks/            # Custom React hooks
+  types/            # TypeScript types
+  constants/        # App-wide constants
+```
+
+<!-- Adjust to match your actual structure -->
+
+## 4. Data Flow
+
+<!-- Describe how data moves through the system, from user action to database and back. -->
+
+```
+User Action
+  -> Client Component / Server Action
+    -> API Route / Server Component
+      -> Database / External Service
+        -> Response
+          -> UI Update
+```
+
+## 5. Database Schema
+
+<!-- Document key tables/collections and their relationships. -->
+
+### Tables
+
+| Table    | Description                  |
+| -------- | ---------------------------- |
+|          |                              |
+
+### Entity Relationship
+
+<!-- Describe or diagram key relationships between entities -->
+
+## 6. API Design
+
+### Internal APIs (Server Actions / Route Handlers)
+
+| Endpoint / Action | Method | Description |
+| ----------------- | ------ | ----------- |
+|                   |        |             |
+
+### External APIs Consumed
+
+| Service | Purpose | Auth Method |
+| ------- | ------- | ----------- |
+|         |         |             |
+
+## 7. Authentication & Authorization
+
+- **Provider**: <!-- e.g., Supabase Auth, Clerk, NextAuth -->
+- **Strategy**: <!-- e.g., JWT, session cookies -->
+- **Roles**: <!-- e.g., admin, user, guest -->
+- **Protected routes**: <!-- How route protection is implemented -->
+
+## 8. Third-Party Integrations
+
+| Service       | Purpose            | SDK / API       |
+| ------------- | ------------------ | --------------- |
+|               |                    |                 |
+
+## 9. Deployment Architecture
+
+- **Platform**: Vercel (team: Orris)
+- **Regions**: <!-- e.g., iad1 (US East) -->
+- **Environment variables**: Managed in Vercel dashboard
+- **Preview deployments**: Enabled on all pull requests
+- **Production branch**: `main`
+
+### Infrastructure Diagram
+
+```
+[Client Browser]
+    |
+[Vercel Edge Network / CDN]
+    |
+[Next.js Serverless Functions]
+    |
+[Database] --- [External Services]
+```
+
+## 10. Scaling Considerations
+
+- **Caching strategy**: <!-- e.g., ISR, CDN, Redis -->
+- **Database scaling**: <!-- e.g., connection pooling, read replicas -->
+- **Rate limiting**: <!-- Where and how -->
+- **Known bottlenecks**: <!-- Current limitations and planned mitigations -->

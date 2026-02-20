@@ -1,0 +1,140 @@
+# Reusable workflow: Test
+# Runs the test script from package.json if it exists.
+# Optionally enforces a coverage threshold and uploads coverage artifacts.
+name: CI - Test
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: "Node.js version to use"
+        required: false
+        type: string
+        default: "22"
+      working_directory:
+        description: "Working directory for monorepo support"
+        required: false
+        type: string
+        default: "."
+      coverage_threshold:
+        description: "Minimum coverage percentage (0 = no enforcement)"
+        required: false
+        type: number
+        default: 0
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect package manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=bun install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        if: steps.detect-pm.outputs.manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ steps.detect-pm.outputs.manager != 'bun' && steps.detect-pm.outputs.manager || '' }}
+
+      - name: Install dependencies
+        run: ${{ steps.detect-pm.outputs.install_cmd }}
+
+      # Check if a test script exists before running
+      - name: Check for test script
+        id: check-test
+        run: |
+          if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.test ? 0 : 1)"; then
+            echo "has_test=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_test=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No 'test' script found in package.json — skipping test step"
+          fi
+
+      - name: Run tests
+        if: steps.check-test.outputs.has_test == 'true'
+        run: |
+          PM="${{ steps.detect-pm.outputs.manager }}"
+          if [ "$PM" = "npm" ]; then
+            npm test -- --coverage || npm test
+          else
+            $PM run test -- --coverage || $PM run test
+          fi
+
+      # Enforce coverage threshold if configured (> 0)
+      - name: Check coverage threshold
+        if: steps.check-test.outputs.has_test == 'true' && inputs.coverage_threshold > 0
+        run: |
+          THRESHOLD=${{ inputs.coverage_threshold }}
+          echo "Checking coverage against threshold: ${THRESHOLD}%"
+
+          # Try to find a coverage summary JSON (works with Jest, Vitest, c8, etc.)
+          COVERAGE_FILE=""
+          for f in coverage/coverage-summary.json coverage/coverage-final.json; do
+            if [ -f "$f" ]; then
+              COVERAGE_FILE="$f"
+              break
+            fi
+          done
+
+          if [ -z "$COVERAGE_FILE" ]; then
+            echo "::warning::No coverage summary JSON found — cannot enforce threshold"
+            exit 0
+          fi
+
+          # Extract the total line coverage percentage from coverage-summary.json
+          COVERAGE=$(node -e "
+            const data = require('./${COVERAGE_FILE}');
+            if (data.total && data.total.lines) {
+              console.log(data.total.lines.pct);
+            } else {
+              console.log(-1);
+            }
+          ")
+
+          if [ "$COVERAGE" = "-1" ]; then
+            echo "::warning::Could not parse coverage percentage from ${COVERAGE_FILE}"
+            exit 0
+          fi
+
+          echo "Current coverage: ${COVERAGE}%"
+          if node -e "process.exit(parseFloat('${COVERAGE}') < ${THRESHOLD} ? 1 : 0)"; then
+            echo "Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
+          else
+            echo "::error::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+            exit 1
+          fi
+
+      # Upload coverage artifacts if the coverage directory was generated
+      - name: Upload coverage artifacts
+        if: steps.check-test.outputs.has_test == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ${{ inputs.working_directory }}/coverage/
+          if-no-files-found: ignore
+          retention-days: 7

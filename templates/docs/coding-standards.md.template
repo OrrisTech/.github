@@ -1,0 +1,200 @@
+# Coding Standards
+
+> Copy this template and fill in the sections for your project.
+
+## 1. Naming Conventions
+
+| Item                | Convention     | Example                          |
+| ------------------- | -------------- | -------------------------------- |
+| Files (components)  | PascalCase     | `UserProfile.tsx`                |
+| Files (utilities)   | camelCase      | `formatDate.ts`                  |
+| Files (constants)   | camelCase      | `siteConfig.ts`                  |
+| Variables           | camelCase      | `userName`                       |
+| Constants           | UPPER_SNAKE    | `MAX_RETRY_COUNT`                |
+| Functions           | camelCase      | `getUserById()`                  |
+| React components    | PascalCase     | `function UserProfile()`         |
+| Custom hooks        | camelCase      | `useAuthSession()`               |
+| Types / Interfaces  | PascalCase     | `type UserProfile = {}`          |
+| Enums               | PascalCase     | `enum UserRole { Admin, User }`  |
+| CSS classes         | kebab-case     | `card-header`                    |
+| Route segments      | kebab-case     | `/user-profile`                  |
+| Database columns    | snake_case     | `created_at`                     |
+| Environment vars    | UPPER_SNAKE    | `DATABASE_URL`                   |
+
+## 2. File Organization
+
+### Component Structure
+
+```
+components/
+  ui/                   # Shared primitives (Button, Input, Card, etc.)
+  [feature]/            # Feature-specific components
+    FeatureName.tsx      # Main component
+    FeatureName.test.tsx # Co-located tests (or in tests/ dir)
+    useFeature.ts        # Feature-specific hook
+    types.ts             # Feature-specific types
+```
+
+### Import Order
+
+Enforce a consistent import order (auto-sorted by ESLint or Prettier plugin):
+
+```typescript
+// 1. React / framework imports
+import { useState } from "react";
+import Link from "next/link";
+
+// 2. Third-party libraries
+import { clsx } from "clsx";
+
+// 3. Internal aliases (@/)
+import { Button } from "@/components/ui/Button";
+import { formatDate } from "@/lib/formatDate";
+
+// 4. Relative imports
+import { useFeature } from "./useFeature";
+
+// 5. Types (using type-only imports)
+import type { User } from "@/types";
+```
+
+## 3. Component Patterns
+
+### Functional Components Only
+
+Always use function declarations for components. No class components.
+
+```typescript
+// Preferred
+export function UserProfile({ user }: UserProfileProps) {
+  return <div>{user.name}</div>;
+}
+
+// Avoid
+const UserProfile: React.FC<UserProfileProps> = ({ user }) => { ... };
+```
+
+### Props
+
+- Define props as a `type` adjacent to the component
+- Destructure props in the function signature
+- Use `children` from `React.ReactNode` when accepting children
+
+```typescript
+type UserProfileProps = {
+  user: User;
+  onEdit?: () => void;
+};
+```
+
+### Server vs Client Components
+
+- Default to Server Components
+- Add `"use client"` only when the component needs browser APIs, event handlers, or React state/effects
+- Keep client components small and push data fetching to server components
+
+## 4. State Management
+
+- **Local state**: `useState` / `useReducer` for component-scoped state
+- **Server state**: Server Components, React Query, or SWR for fetched data
+- **URL state**: `useSearchParams` for filter/sort/pagination state
+- **Global state**: Use sparingly. Prefer Context for simple cases, Zustand for complex state
+- **Form state**: React Hook Form for complex forms, native for simple forms
+
+## 5. Error Handling
+
+### Client-Side
+
+- Use error boundaries for component-level error recovery
+- Display user-friendly error messages (never raw error strings)
+- Log errors to monitoring service in production
+
+### Server-Side
+
+- Use try/catch in Server Actions and API routes
+- Return typed error responses, not thrown exceptions
+- Validate input at the boundary (zod schemas)
+
+### Database
+
+- All database operations must account for concurrency safety
+- Use transactions for multi-step mutations
+- Handle unique constraint violations gracefully
+
+## 6. Performance Guidelines
+
+- Performance optimizations must include benchmark data
+- Use `React.memo` only when profiling shows unnecessary re-renders
+- Prefer CSS for animations over JavaScript where possible
+- Lazy-load below-the-fold components with `dynamic()` or `React.lazy`
+- Use `next/image` for all images (automatic optimization)
+- Avoid layout shifts (set explicit `width`/`height` on media)
+
+## 7. Testing Standards
+
+### Unit Tests (Vitest)
+
+- Test behavior, not implementation details
+- One assertion per test when practical
+- Use descriptive test names: `it("shows error message when email is invalid")`
+- Mock external dependencies, not internal modules
+
+### E2E Tests (Playwright)
+
+- Test critical user journeys end-to-end
+- Use data-testid attributes for test selectors (avoid CSS class selectors)
+- Tests should be independent and not rely on other tests' state
+
+### Coverage
+
+- Statements: >= 80%
+- Branches: >= 75%
+- Functions: >= 80%
+- Lines: >= 80%
+
+## 8. Git Workflow
+
+### Branch Naming
+
+```
+feature/short-description
+fix/issue-number-description
+chore/task-description
+refactor/what-changed
+```
+
+### Commit Messages
+
+Follow Conventional Commits:
+
+```
+type(scope): description
+
+feat(auth): add Google OAuth login
+fix(cart): prevent duplicate items on rapid click
+chore(deps): update Next.js to 15.2
+refactor(api): extract validation into shared schemas
+```
+
+### Pull Requests
+
+- Keep PRs focused on a single concern
+- Fill in the PR template (summary, test plan)
+- Require at least one approval before merging
+- Squash merge to keep history clean
+
+## 9. Code Review Guidelines
+
+### For Authors
+
+- Self-review your diff before requesting review
+- Add comments on non-obvious decisions
+- Keep PRs under 400 lines of meaningful change when possible
+- Respond to all review comments, even if just "Done"
+
+### For Reviewers
+
+- Review within 24 hours
+- Distinguish blocking vs non-blocking feedback (prefix with "nit:" for suggestions)
+- Focus on correctness, security, readability, and maintainability
+- Approve when all blocking issues are resolved (do not block on style nits)

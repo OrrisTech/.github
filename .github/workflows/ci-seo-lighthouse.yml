@@ -1,0 +1,160 @@
+# Reusable workflow: SEO & Lighthouse
+# Runs Lighthouse CI (lhci) to check performance, accessibility, and SEO scores.
+# Runs if a lighthouserc config exists or if urls are explicitly provided.
+name: CI - SEO & Lighthouse
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: "Node.js version to use"
+        required: false
+        type: string
+        default: "22"
+      working_directory:
+        description: "Working directory for monorepo support"
+        required: false
+        type: string
+        default: "."
+      lighthouse_urls:
+        description: "Comma-separated URLs to audit (default: http://localhost:3000)"
+        required: false
+        type: string
+        default: "http://localhost:3000"
+      threshold_performance:
+        description: "Minimum performance score (0.0 - 1.0)"
+        required: false
+        type: number
+        default: 0.7
+      threshold_accessibility:
+        description: "Minimum accessibility score (0.0 - 1.0)"
+        required: false
+        type: number
+        default: 0.9
+      threshold_seo:
+        description: "Minimum SEO score (0.0 - 1.0)"
+        required: false
+        type: number
+        default: 0.9
+
+jobs:
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Determine if we should run: config file exists OR custom urls were provided
+      - name: Check if Lighthouse should run
+        id: check-lh
+        run: |
+          HAS_CONFIG="false"
+          if [ -f "lighthouserc.json" ] || [ -f ".lighthouserc.json" ] || [ -f "lighthouserc.js" ] || [ -f "lighthouserc.yml" ]; then
+            HAS_CONFIG="true"
+          fi
+
+          # Check if custom URLs were provided (anything other than the default)
+          CUSTOM_URLS="false"
+          if [ "${{ inputs.lighthouse_urls }}" != "http://localhost:3000" ]; then
+            CUSTOM_URLS="true"
+          fi
+
+          if [ "$HAS_CONFIG" = "true" ] || [ "$CUSTOM_URLS" = "true" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "has_config=$HAS_CONFIG" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Lighthouse config found and no custom URLs provided — skipping audit"
+          fi
+
+      - name: Detect package manager
+        if: steps.check-lh.outputs.should_run == 'true'
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=bun install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.check-lh.outputs.should_run == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        if: steps.check-lh.outputs.should_run == 'true' && steps.detect-pm.outputs.manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        if: steps.check-lh.outputs.should_run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ steps.detect-pm.outputs.manager != 'bun' && steps.detect-pm.outputs.manager || '' }}
+
+      - name: Install dependencies
+        if: steps.check-lh.outputs.should_run == 'true'
+        run: ${{ steps.detect-pm.outputs.install_cmd }}
+
+      - name: Install Lighthouse CI
+        if: steps.check-lh.outputs.should_run == 'true'
+        run: npm install -g @lhci/cli
+
+      # If a lighthouserc config file exists, use it directly
+      - name: Run Lighthouse CI (with config)
+        if: steps.check-lh.outputs.should_run == 'true' && steps.check-lh.outputs.has_config == 'true'
+        run: lhci autorun
+
+      # If no config file, generate a temporary one with the provided URLs and thresholds
+      - name: Run Lighthouse CI (with inputs)
+        if: steps.check-lh.outputs.should_run == 'true' && steps.check-lh.outputs.has_config == 'false'
+        run: |
+          # Convert comma-separated URLs to JSON array
+          URLS_JSON=$(echo '${{ inputs.lighthouse_urls }}' | node -e "
+            const input = require('fs').readFileSync('/dev/stdin','utf8').trim();
+            const urls = input.split(',').map(u => u.trim()).filter(Boolean);
+            console.log(JSON.stringify(urls));
+          ")
+
+          # Create a temporary lighthouserc config
+          cat > /tmp/lighthouserc.json << EOF
+          {
+            "ci": {
+              "collect": {
+                "url": ${URLS_JSON},
+                "numberOfRuns": 1
+              },
+              "assert": {
+                "assertions": {
+                  "categories:performance": ["warn", { "minScore": ${{ inputs.threshold_performance }} }],
+                  "categories:accessibility": ["error", { "minScore": ${{ inputs.threshold_accessibility }} }],
+                  "categories:seo": ["error", { "minScore": ${{ inputs.threshold_seo }} }]
+                }
+              },
+              "upload": {
+                "target": "temporary-public-storage"
+              }
+            }
+          }
+          EOF
+
+          lhci autorun --config=/tmp/lighthouserc.json
+
+      # Upload Lighthouse results as artifacts
+      - name: Upload Lighthouse results
+        if: steps.check-lh.outputs.should_run == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results
+          path: ${{ inputs.working_directory }}/.lighthouseci/
+          if-no-files-found: ignore
+          retention-days: 7

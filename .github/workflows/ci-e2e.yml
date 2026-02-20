@@ -1,0 +1,96 @@
+# Reusable workflow: End-to-End Tests (Playwright)
+# Only runs if a Playwright config file exists in the project.
+# Installs Playwright browsers, runs tests, and uploads results as artifacts.
+name: CI - E2E Tests
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: "Node.js version to use"
+        required: false
+        type: string
+        default: "22"
+      working_directory:
+        description: "Working directory for monorepo support"
+        required: false
+        type: string
+        default: "."
+
+jobs:
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Check if Playwright config exists before proceeding
+      - name: Check for Playwright config
+        id: check-pw
+        run: |
+          if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ] || [ -f "playwright.config.mjs" ]; then
+            echo "has_config=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_config=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Playwright config found — skipping E2E tests"
+          fi
+
+      - name: Detect package manager
+        if: steps.check-pw.outputs.has_config == 'true'
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=bun install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.check-pw.outputs.has_config == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        if: steps.check-pw.outputs.has_config == 'true' && steps.detect-pm.outputs.manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        if: steps.check-pw.outputs.has_config == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ steps.detect-pm.outputs.manager != 'bun' && steps.detect-pm.outputs.manager || '' }}
+
+      - name: Install dependencies
+        if: steps.check-pw.outputs.has_config == 'true'
+        run: ${{ steps.detect-pm.outputs.install_cmd }}
+
+      # Install Playwright browsers and their system dependencies
+      - name: Install Playwright browsers
+        if: steps.check-pw.outputs.has_config == 'true'
+        run: npx playwright install --with-deps
+
+      # Run Playwright tests
+      - name: Run Playwright tests
+        if: steps.check-pw.outputs.has_config == 'true'
+        run: npx playwright test
+
+      # Upload test results (HTML report + trace files) as artifacts
+      - name: Upload Playwright report
+        if: steps.check-pw.outputs.has_config == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            ${{ inputs.working_directory }}/playwright-report/
+            ${{ inputs.working_directory }}/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,94 @@
+# Product Requirements Document
+
+> Copy this template and fill in the sections for your project.
+
+## Metadata
+
+| Field       | Value          |
+| ----------- | -------------- |
+| Project     | <!-- name -->  |
+| Version     | 0.1.0          |
+| Author      | <!-- name -->  |
+| Date        | YYYY-MM-DD     |
+| Status      | Draft          |
+
+---
+
+## 1. Problem Statement
+
+<!-- What problem does this project solve? Who experiences this problem and how frequently? -->
+
+## 2. Goals & Success Metrics
+
+### Goals
+
+- <!-- Primary goal -->
+- <!-- Secondary goal -->
+
+### Success Metrics
+
+| Metric | Target | How Measured |
+| ------ | ------ | ------------ |
+|        |        |              |
+
+## 3. User Personas
+
+### Persona 1: <!-- Name -->
+
+- **Role**: <!-- e.g., Small business owner -->
+- **Pain points**: <!-- What frustrates them today -->
+- **Goals**: <!-- What they want to achieve -->
+
+### Persona 2: <!-- Name -->
+
+- **Role**:
+- **Pain points**:
+- **Goals**:
+
+## 4. Feature Requirements
+
+### Must Have (P0)
+
+- [ ] <!-- Feature description -->
+- [ ] <!-- Feature description -->
+
+### Should Have (P1)
+
+- [ ] <!-- Feature description -->
+- [ ] <!-- Feature description -->
+
+### Nice to Have (P2)
+
+- [ ] <!-- Feature description -->
+
+## 5. Technical Requirements
+
+- **Performance**: <!-- e.g., Page load < 2s, API response < 200ms -->
+- **Scalability**: <!-- e.g., Support 10K concurrent users -->
+- **Security**: <!-- e.g., SOC2 compliance, data encryption at rest -->
+- **Browser support**: <!-- e.g., Last 2 versions of Chrome, Firefox, Safari, Edge -->
+- **Accessibility**: <!-- e.g., WCAG 2.1 AA compliance -->
+
+## 6. Timeline & Milestones
+
+| Milestone           | Target Date | Description |
+| ------------------- | ----------- | ----------- |
+| Discovery           |             |             |
+| Design              |             |             |
+| MVP                 |             |             |
+| Beta                |             |             |
+| Launch              |             |             |
+
+## 7. Out of Scope
+
+<!-- Explicitly list things this project will NOT do in its current scope -->
+
+- <!-- Item -->
+- <!-- Item -->
+
+## 8. Open Questions
+
+<!-- Unresolved decisions or information gaps -->
+
+- [ ] <!-- Question -->
+- [ ] <!-- Question -->

@@ -1,0 +1,149 @@
+# Reusable workflow: Dead Link Checker
+# Runs linkinator to find broken links in the built site or provided URL.
+# Posts results as a PR comment if broken links are found.
+name: CI - Dead Link Checker
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: "Node.js version to use"
+        required: false
+        type: string
+        default: "22"
+      working_directory:
+        description: "Working directory for monorepo support"
+        required: false
+        type: string
+        default: "."
+      urls:
+        description: "URL or path to check for broken links (e.g., https://example.com or ./out)"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  dead-links:
+    name: Dead Link Checker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Determine the target URL/path to scan
+      - name: Determine scan target
+        id: target
+        run: |
+          if [ -n "${{ inputs.urls }}" ]; then
+            echo "url=${{ inputs.urls }}" >> "$GITHUB_OUTPUT"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            # Auto-detect common build output directories
+            for dir in out dist build .next/server/pages public; do
+              if [ -d "$dir" ]; then
+                echo "url=./$dir" >> "$GITHUB_OUTPUT"
+                echo "should_run=true" >> "$GITHUB_OUTPUT"
+                echo "Found build output directory: $dir"
+                exit 0
+              fi
+            done
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No URL provided and no build output directory found — skipping dead link check"
+          fi
+
+      - name: Setup Node.js
+        if: steps.target.outputs.should_run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      # Run linkinator and capture output
+      - name: Run linkinator
+        if: steps.target.outputs.should_run == 'true'
+        id: linkinator
+        continue-on-error: true
+        run: |
+          TARGET="${{ steps.target.outputs.url }}"
+          echo "Scanning: $TARGET"
+
+          # Run linkinator and capture output. Use --retry for transient network failures.
+          npx linkinator "$TARGET" \
+            --retry \
+            --timeout 30000 \
+            --verbosity error \
+            2>&1 | tee /tmp/linkinator-output.txt
+
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+          # Check if there are broken links in the output
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "has_broken_links=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_broken_links=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Post broken link results as a PR comment
+      - name: Post results as PR comment
+        if: steps.target.outputs.should_run == 'true' && steps.linkinator.outputs.has_broken_links == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('/tmp/linkinator-output.txt', 'utf8');
+
+            // Truncate if too long for a PR comment
+            const maxLength = 60000;
+            const truncated = output.length > maxLength
+              ? output.substring(0, maxLength) + '\n\n... (output truncated)'
+              : output;
+
+            const body = `## Dead Link Checker Report
+
+            Broken links were detected by [linkinator](https://github.com/JustinBeckwith/linkinator):
+
+            \`\`\`
+            ${truncated}
+            \`\`\`
+
+            > Please fix the broken links listed above.`;
+
+            // Find and update existing comment or create a new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.body.includes('## Dead Link Checker Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      # Fail the job if broken links were found
+      - name: Fail if broken links found
+        if: steps.target.outputs.should_run == 'true' && steps.linkinator.outputs.has_broken_links == 'true'
+        run: |
+          echo "::error::Broken links were detected — see output above or PR comment for details"
+          exit 1
