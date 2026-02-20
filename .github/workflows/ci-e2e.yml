@@ -1,5 +1,6 @@
 # Reusable workflow: End-to-End Tests (Playwright)
 # Only runs if a Playwright config file exists in the project.
+# Auto-detects package manager (pnpm > npm > bun) based on lockfile.
 # Installs Playwright browsers, runs tests, and uploads results as artifacts.
 name: CI - E2E Tests
 
@@ -38,8 +39,26 @@ jobs:
             echo "::notice::No Playwright config found — skipping E2E tests"
           fi
 
-      - name: Setup Bun
+      - name: Detect package manager
         if: steps.check-pw.outputs.has_config == 'true'
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.check-pw.outputs.has_config == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Bun
+        if: steps.check-pw.outputs.has_config == 'true' && steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -50,15 +69,20 @@ jobs:
 
       - name: Install dependencies
         if: steps.check-pw.outputs.has_config == 'true'
-        run: bun install --frozen-lockfile
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm install --frozen-lockfile ;;
+            npm)  npm ci ;;
+            bun)  bun install --frozen-lockfile ;;
+          esac
 
       - name: Install Playwright browsers
         if: steps.check-pw.outputs.has_config == 'true'
-        run: bunx playwright install --with-deps
+        run: npx playwright install --with-deps
 
       - name: Run Playwright tests
         if: steps.check-pw.outputs.has_config == 'true'
-        run: bunx playwright test
+        run: npx playwright test
 
       - name: Upload Playwright report
         if: steps.check-pw.outputs.has_config == 'true' && always()

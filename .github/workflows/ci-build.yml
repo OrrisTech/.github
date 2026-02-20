@@ -1,5 +1,6 @@
 # Reusable workflow: Build
 # Runs a production build with auto-detected or custom build command.
+# Auto-detects package manager (pnpm > npm > bun) based on lockfile.
 # Sets common dummy env vars for Next.js builds so they don't fail on missing secrets.
 name: CI - Build
 
@@ -112,8 +113,26 @@ jobs:
             echo "is_node=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Setup Bun
+      - name: Detect package manager
         if: steps.check-project.outputs.is_node == 'true'
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.check-project.outputs.is_node == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Bun
+        if: steps.check-project.outputs.is_node == 'true' && steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -124,7 +143,12 @@ jobs:
 
       - name: Install dependencies
         if: steps.check-project.outputs.is_node == 'true'
-        run: bun install --frozen-lockfile
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm install --frozen-lockfile ;;
+            npm)  npm ci ;;
+            bun)  bun install --frozen-lockfile ;;
+          esac
 
       # Determine which build command to run, or skip if not a buildable project
       - name: Detect build command
@@ -139,8 +163,10 @@ jobs:
             echo "::notice::No package.json found — skipping build step"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            if bun -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.build ? 0 : 1)"; then
-              echo "cmd=bun run build" >> "$GITHUB_OUTPUT"
+            if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.build ? 0 : 1)"; then
+              # Build command uses the detected package manager
+              PM="${{ steps.detect-pm.outputs.manager }}"
+              echo "cmd=${PM} run build" >> "$GITHUB_OUTPUT"
               echo "skip=false" >> "$GITHUB_OUTPUT"
             else
               echo "::notice::No 'build' script in package.json — skipping build step"

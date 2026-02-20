@@ -1,5 +1,6 @@
 # Reusable workflow: Security Audit
-# Runs npm audit at high severity level (bun lacks native audit).
+# Runs npm audit at high severity level.
+# Auto-detects package manager (pnpm > npm > bun) based on lockfile.
 # Optionally runs Snyk scan if SNYK_TOKEN secret is available.
 # Audit failures are advisory (continue-on-error) and do not block the pipeline.
 name: CI - Security Audit
@@ -33,7 +34,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Detect package manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - name: Setup Bun
+        if: steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -42,13 +61,22 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm install --frozen-lockfile ;;
+            npm)  npm ci ;;
+            bun)  bun install --frozen-lockfile ;;
+          esac
 
-      # Bun does not have a built-in audit command; use npm audit against
-      # the installed node_modules and package-lock.json equivalent
+      # Run package audit using the appropriate tool for each package manager
       - name: Run package audit
         continue-on-error: true
-        run: npm audit --audit-level=high || true
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm audit --audit-level=high || true ;;
+            npm)  npm audit --audit-level=high || true ;;
+            bun)  npm audit --audit-level=high || true ;;
+          esac
 
       # Run Snyk scan only if SNYK_TOKEN is provided
       - name: Check for Snyk token

@@ -1,5 +1,6 @@
 # Reusable workflow: Test
 # Runs the test script from package.json if it exists.
+# Auto-detects package manager (pnpm > npm > bun) based on lockfile.
 # Optionally enforces a coverage threshold and uploads coverage artifacts.
 name: CI - Test
 
@@ -33,7 +34,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Detect package manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - name: Setup Bun
+        if: steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -42,13 +61,18 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm install --frozen-lockfile ;;
+            npm)  npm ci ;;
+            bun)  bun install --frozen-lockfile ;;
+          esac
 
       # Check if a test script exists before running
       - name: Check for test script
         id: check-test
         run: |
-          if bun -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.test ? 0 : 1)"; then
+          if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.test ? 0 : 1)"; then
             echo "has_test=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_test=false" >> "$GITHUB_OUTPUT"
@@ -57,7 +81,12 @@ jobs:
 
       - name: Run tests
         if: steps.check-test.outputs.has_test == 'true'
-        run: bun run test -- --coverage || bun run test
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm run test -- --coverage || pnpm run test ;;
+            npm)  npm run test -- --coverage || npm run test ;;
+            bun)  bun run test -- --coverage || bun run test ;;
+          esac
 
       # Enforce coverage threshold if configured (> 0)
       - name: Check coverage threshold
@@ -80,7 +109,7 @@ jobs:
             exit 0
           fi
 
-          COVERAGE=$(bun -e "
+          COVERAGE=$(node -e "
             const data = require('./${COVERAGE_FILE}');
             if (data.total && data.total.lines) {
               console.log(data.total.lines.pct);
@@ -95,7 +124,7 @@ jobs:
           fi
 
           echo "Current coverage: ${COVERAGE}%"
-          if bun -e "process.exit(parseFloat('${COVERAGE}') < ${THRESHOLD} ? 1 : 0)"; then
+          if node -e "process.exit(parseFloat('${COVERAGE}') < ${THRESHOLD} ? 1 : 0)"; then
             echo "Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
           else
             echo "::error::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"

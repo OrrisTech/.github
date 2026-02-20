@@ -142,6 +142,21 @@ Never use these words/phrases that signal low-quality AI-generated content:
 
 ---
 
+## Package Manager
+
+- **New projects**: Use **Bun** as the default package manager. Initialize with `bun init` and
+  commit a `bun.lock` file.
+- **Existing repos**: Respect the package manager already in use. CI auto-detects based on lock
+  files:
+  - `pnpm-lock.yaml` → **pnpm**
+  - `package-lock.json` → **npm**
+  - No recognized lock file → **Bun** (default)
+- Do NOT mix package managers within a single repo. If migrating, remove the old lock file and
+  regenerate with the new package manager in a dedicated PR.
+- Use `--frozen-lockfile` (pnpm/bun) or `npm ci` (npm) in CI to ensure reproducible installs.
+
+---
+
 ## Environment Variables
 
 - Every repo MUST have a `.env.example` at the root listing ALL required environment

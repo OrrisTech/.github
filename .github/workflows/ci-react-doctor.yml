@@ -1,5 +1,6 @@
 # Reusable workflow: React Doctor
 # Runs react-doctor to detect common React issues and anti-patterns.
+# Auto-detects package manager (pnpm > npm > bun) based on lockfile.
 # Posts results as a PR comment when triggered by a pull_request event.
 name: CI - React Doctor
 
@@ -32,7 +33,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Detect package manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - name: Setup Bun
+        if: steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -41,13 +60,18 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm install --frozen-lockfile ;;
+            npm)  npm ci ;;
+            bun)  bun install --frozen-lockfile ;;
+          esac
 
       - name: Run react-doctor
         id: react-doctor
         continue-on-error: true
         run: |
-          OUTPUT=$(bunx react-doctor@latest . --verbose 2>&1) || true
+          OUTPUT=$(npx react-doctor@latest . --verbose 2>&1) || true
           echo "$OUTPUT" > /tmp/react-doctor-output.txt
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 

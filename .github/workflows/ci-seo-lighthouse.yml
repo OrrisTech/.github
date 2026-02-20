@@ -1,5 +1,6 @@
 # Reusable workflow: SEO & Lighthouse
 # Runs Lighthouse CI (lhci) to check performance, accessibility, and SEO scores.
+# Auto-detects package manager (pnpm > npm > bun) based on lockfile.
 # Runs if a lighthouserc config exists or if urls are explicitly provided.
 name: CI - SEO & Lighthouse
 
@@ -71,8 +72,26 @@ jobs:
             echo "::notice::No Lighthouse config found and no custom URLs provided — skipping audit"
           fi
 
-      - name: Setup Bun
+      - name: Detect package manager
         if: steps.check-lh.outputs.should_run == 'true'
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f "package-lock.json" ]; then
+            echo "manager=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "manager=bun" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.check-lh.outputs.should_run == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Bun
+        if: steps.check-lh.outputs.should_run == 'true' && steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -83,7 +102,12 @@ jobs:
 
       - name: Install dependencies
         if: steps.check-lh.outputs.should_run == 'true'
-        run: bun install --frozen-lockfile
+        run: |
+          case "${{ steps.detect-pm.outputs.manager }}" in
+            pnpm) pnpm install --frozen-lockfile ;;
+            npm)  npm ci ;;
+            bun)  bun install --frozen-lockfile ;;
+          esac
 
       - name: Install Lighthouse CI
         if: steps.check-lh.outputs.should_run == 'true'
@@ -101,7 +125,7 @@ jobs:
           LH_A11Y: ${{ inputs.threshold_accessibility }}
           LH_SEO: ${{ inputs.threshold_seo }}
         run: |
-          URLS_JSON=$(echo "$LH_URLS" | bun -e "
+          URLS_JSON=$(echo "$LH_URLS" | node -e "
             const input = require('fs').readFileSync('/dev/stdin','utf8').trim();
             const urls = input.split(',').map(u => u.trim()).filter(Boolean);
             console.log(JSON.stringify(urls));
