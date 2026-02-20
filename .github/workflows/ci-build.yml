@@ -29,15 +29,78 @@ jobs:
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
-    # Provide dummy env vars so Next.js builds don't fail on missing public env
+    # Dummy env vars so Next.js builds don't crash on missing secrets.
+    # These are NEVER used at runtime — only to satisfy build-time checks.
+    # Add new vars here when repos use additional services.
     env:
-      NEXT_PUBLIC_SITE_URL: "https://example.com"
-      NEXT_PUBLIC_API_URL: "https://api.example.com"
+      # ── Next.js ──
+      NEXT_PUBLIC_SITE_URL: "https://ci-build.example.com"
+      NEXT_PUBLIC_API_URL: "https://api.ci-build.example.com"
+      NEXT_PUBLIC_APP_URL: "https://ci-build.example.com"
+      NEXT_PUBLIC_BASE_URL: "https://ci-build.example.com"
+      # ── Supabase ──
       NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ci-placeholder"
+      SUPABASE_URL: "https://placeholder.supabase.co"
+      SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ci-placeholder"
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ci-placeholder"
+      # ── Sentry ──
+      SENTRY_AUTH_TOKEN: "ci-placeholder"
+      NEXT_PUBLIC_SENTRY_DSN: "https://placeholder@o0.ingest.sentry.io/0"
+      SENTRY_DSN: "https://placeholder@o0.ingest.sentry.io/0"
+      # ── Stripe ──
+      STRIPE_SECRET_KEY: "sk_test_ci_placeholder"
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_ci_placeholder"
+      STRIPE_WEBHOOK_SECRET: "whsec_ci_placeholder"
+      # ── Auth ──
+      NEXTAUTH_SECRET: "ci-placeholder-secret-32-chars-xx"
+      NEXTAUTH_URL: "https://ci-build.example.com"
+      AUTH_SECRET: "ci-placeholder-secret-32-chars-xx"
+      # ── Database ──
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
+      # ── Common API keys ──
+      OPENAI_API_KEY: "sk-ci-placeholder"
+      ANTHROPIC_API_KEY: "sk-ant-ci-placeholder"
+      GOOGLE_API_KEY: "ci-placeholder"
+      GEMINI_API_KEY: "ci-placeholder"
+      RESEND_API_KEY: "re_ci_placeholder"
+      UPSTASH_REDIS_REST_URL: "https://ci-placeholder.upstash.io"
+      UPSTASH_REDIS_REST_TOKEN: "ci-placeholder"
+      # ── Generic fallback ──
+      CI: "true"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # If .env.example exists, load its keys as dummy env vars.
+      # This catches project-specific vars not in the hardcoded list above.
+      - name: Load env vars from .env.example
+        run: |
+          if [ -f ".env.example" ]; then
+            echo "Found .env.example — loading keys as dummy vars"
+            while IFS= read -r line || [ -n "$line" ]; do
+              # Skip comments and empty lines
+              [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+              # Extract key name (everything before the first =)
+              KEY="${line%%=*}"
+              # Only set if not already defined (hardcoded env takes priority)
+              if [ -z "${!KEY:-}" ]; then
+                echo "${KEY}=ci-placeholder" >> "$GITHUB_ENV"
+              fi
+            done < ".env.example"
+          elif [ -f ".env.local.example" ]; then
+            echo "Found .env.local.example — loading keys as dummy vars"
+            while IFS= read -r line || [ -n "$line" ]; do
+              [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+              KEY="${line%%=*}"
+              if [ -z "${!KEY:-}" ]; then
+                echo "${KEY}=ci-placeholder" >> "$GITHUB_ENV"
+              fi
+            done < ".env.local.example"
+          else
+            echo "No .env.example found — using only hardcoded CI env vars"
+          fi
 
       - name: Detect package manager
         id: detect-pm
