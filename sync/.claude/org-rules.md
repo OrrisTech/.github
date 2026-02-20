@@ -142,6 +142,31 @@ Never use these words/phrases that signal low-quality AI-generated content:
 
 ---
 
+## Environment Variables
+
+- Every repo MUST have a `.env.example` at the root listing ALL required environment
+  variables with placeholder values. This file is used by CI to provide dummy env vars
+  during builds.
+- If a `.env.sample` file exists, **rename it to `.env.example`** and use that instead.
+  Do not keep both files.
+- When adding, removing, or renaming an env var in code, **update `.env.example`** in
+  the same commit. Do not leave `.env.example` out of sync with the actual code.
+- Format: one `KEY=placeholder_value` per line. Use comments to group related vars:
+  ```
+  # Supabase
+  SUPABASE_URL=https://your-project.supabase.co
+  SUPABASE_ANON_KEY=your-anon-key
+  SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+  # Stripe
+  STRIPE_SECRET_KEY=sk_test_xxx
+  ```
+- Never put real secret values in `.env.example` — only descriptive placeholders.
+- `.env.example` MUST be committed to git. `.env`, `.env.local`, and `.env.production`
+  MUST be in `.gitignore` and never committed.
+
+---
+
 ## Security Requirements
 
 - **No new vulnerabilities**: `npm audit` / `pnpm audit` must not introduce new
