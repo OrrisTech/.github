@@ -68,6 +68,14 @@ jobs:
       RESEND_API_KEY: "re_ci_placeholder"
       UPSTASH_REDIS_REST_URL: "https://ci-placeholder.upstash.io"
       UPSTASH_REDIS_REST_TOKEN: "ci-placeholder"
+      # ── CDN / Asset hosting ──
+      NEXT_PUBLIC_CDN_BASE_URL: "https://ci-placeholder.cdn.example.com"
+      CDN_BASE_URL: "https://ci-placeholder.cdn.example.com"
+      # ── Volcengine / Huoshan ──
+      VOLC_ACCESSKEY: "ci-placeholder"
+      VOLC_SECRETKEY: "ci-placeholder"
+      ACCESS_KEY_ID: "ci-placeholder"
+      ACCESS_KEY_SECRET: "ci-placeholder"
       # ── Generic fallback ──
       CI: "true"
     steps:
@@ -87,7 +95,12 @@ jobs:
               KEY="${line%%=*}"
               # Only set if not already defined (hardcoded env takes priority)
               if [ -z "${!KEY:-}" ]; then
-                echo "${KEY}=ci-placeholder" >> "$GITHUB_ENV"
+                # Use URL-like placeholder for keys containing URL/URI/ENDPOINT/DSN
+                if echo "$KEY" | grep -qiE '(URL|URI|ENDPOINT|DSN|WEBHOOK)'; then
+                  echo "${KEY}=https://ci-placeholder.example.com" >> "$GITHUB_ENV"
+                else
+                  echo "${KEY}=ci-placeholder" >> "$GITHUB_ENV"
+                fi
               fi
             done < ".env.example"
           elif [ -f ".env.local.example" ]; then
@@ -96,7 +109,11 @@ jobs:
               [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
               KEY="${line%%=*}"
               if [ -z "${!KEY:-}" ]; then
-                echo "${KEY}=ci-placeholder" >> "$GITHUB_ENV"
+                if echo "$KEY" | grep -qiE '(URL|URI|ENDPOINT|DSN|WEBHOOK)'; then
+                  echo "${KEY}=https://ci-placeholder.example.com" >> "$GITHUB_ENV"
+                else
+                  echo "${KEY}=ci-placeholder" >> "$GITHUB_ENV"
+                fi
               fi
             done < ".env.local.example"
           else
