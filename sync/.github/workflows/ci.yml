@@ -40,3 +40,9 @@ jobs:
     if: github.event_name == 'pull_request'
     uses: OrrisTech/.github/.github/workflows/ci-react-doctor.yml@main
     secrets: inherit
+
+  claude-review:
+    name: Claude Code Review
+    if: github.event_name == 'pull_request'
+    uses: OrrisTech/.github/.github/workflows/ci-claude-review.yml@main
+    secrets: inherit

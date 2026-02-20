@@ -1,0 +1,134 @@
+# Reusable workflow: Claude Code PR Review
+# Automatically reviews PRs, applies non-breaking fixes (formatting, lint,
+# import ordering, typos), and posts review comments for issues that need
+# manual attention from the PR author.
+#
+# Requires ANTHROPIC_API_KEY secret set at the org level.
+name: CI - Claude Code Review
+
+on:
+  workflow_call:
+    inputs:
+      auto_fix:
+        description: "Enable auto-fix for non-breaking changes (formatting, lint, imports)"
+        required: false
+        type: boolean
+        default: true
+      review_focus:
+        description: "Comma-separated review focus areas"
+        required: false
+        type: string
+        default: "code-quality,security,performance,best-practices"
+      model:
+        description: "Claude model to use"
+        required: false
+        type: string
+        default: "sonnet"
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+
+jobs:
+  claude-review:
+    # Only run on PRs, not on direct pushes
+    if: github.event_name == 'pull_request'
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    env:
+      # Pass event data via env vars to avoid injection risks in shell contexts
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+      REVIEW_FOCUS: ${{ inputs.review_focus }}
+      AUTO_FIX: ${{ inputs.auto_fix }}
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          # Checkout the PR branch so Claude can commit fixes back to it
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Claude Code Review & Auto-fix
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: ${{ inputs.model }}
+          track_progress: true
+          prompt: |
+            You are a senior code reviewer for the OrrisTech organization.
+            Review PR #${PR_NUMBER} in repo ${GITHUB_REPOSITORY} thoroughly
+            following org standards.
+
+            ## Step 1: Read the diff
+
+            Run `gh pr diff ${PR_NUMBER}` to see all changes.
+            Run `gh pr view ${PR_NUMBER}` for PR description.
+
+            ## Step 2: Auto-fix non-breaking issues (if AUTO_FIX is true)
+
+            If auto-fix is enabled (AUTO_FIX=${AUTO_FIX}), fix these issues
+            DIRECTLY by editing files and committing to the PR branch:
+
+            - Formatting inconsistencies (spacing, indentation, trailing whitespace)
+            - Import ordering / unused imports
+            - Obvious typos in comments, strings, and variable names
+            - Missing semicolons or trailing commas (per project style)
+            - Simple lint fixes that don't change behavior
+
+            For each auto-fix, use `git add` and `git commit` with a clear message:
+            `fix: auto-fix formatting and import ordering`
+
+            DO NOT auto-fix:
+            - Logic changes, even if they look like bugs
+            - Type changes or interface modifications
+            - Anything that changes runtime behavior
+            - Anything you're not 100% certain about
+
+            ## Step 3: Review and comment on issues needing manual attention
+
+            Review the PR for these focus areas: ${REVIEW_FOCUS}
+
+            Specifically check against OrrisTech standards:
+            - **Code quality**: Clean code, no debug statements (console.log, debugger),
+              no AI slop (over-engineering, unnecessary abstractions)
+            - **Security**: No hardcoded secrets, proper input validation, XSS prevention,
+              no new npm audit vulnerabilities
+            - **React/Next.js**: Server Components by default, proper "use client" usage,
+              React 19 patterns (useActionState, useOptimistic, Server Actions)
+            - **TypeScript**: Strict types, no `any` without justification
+            - **Testing**: New features should have tests, existing tests should still pass
+            - **SEO**: Pages need metadata, structured data, heading hierarchy, alt text
+            - **UI/Design**: shadcn/ui + Tailwind v4, SVG icons, animations < 300ms
+            - **Documentation**: /docs updated if architecture changed, no stale docs
+
+            For issues found:
+            - Use `mcp__github_inline_comment__create_inline_comment` for specific code lines
+            - Use `gh pr comment` for the overall summary
+
+            ## Step 4: Post summary comment
+
+            Post a single summary comment on the PR using `gh pr comment` with this format:
+
+            ---
+            ## Claude Code Review Summary
+
+            ### Auto-fixed (committed)
+            [List what was auto-fixed, or "No auto-fixes needed"]
+
+            ### Action Required
+            [List issues that need manual attention from @${PR_AUTHOR}, grouped by severity]
+            - **Critical**: Must fix before merge
+            - **Suggestion**: Nice to have, non-blocking
+
+            ### Looks Good
+            [Brief note on what looks good about the PR]
+
+            **Reviewed by Claude Code** | [OrrisTech Standards](https://github.com/OrrisTech/.github)
+            ---
+
+          claude_args: |
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git diff:*),Bash(git status:*),mcp__github_inline_comment__create_inline_comment"
