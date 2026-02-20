@@ -8,6 +8,13 @@ on:
   push:
     branches: [main, master]
 
+# Permissions needed by reusable workflows:
+# - contents:read — checkout code
+# - pull-requests:write — react-doctor posts PR comments
+permissions:
+  contents: read
+  pull-requests: write
+
 # Cancel in-progress runs for the same branch/PR to save runner minutes
 concurrency:
   group: ci-${{ github.ref }}
