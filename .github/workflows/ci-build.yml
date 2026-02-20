@@ -102,7 +102,18 @@ jobs:
             echo "No .env.example found — using only hardcoded CI env vars"
           fi
 
+      # Check if this is a Node.js project before setting up tooling
+      - name: Check for package.json
+        id: check-project
+        run: |
+          if [ -f "package.json" ]; then
+            echo "is_node=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_node=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Detect package manager
+        if: steps.check-project.outputs.is_node == 'true'
         id: detect-pm
         run: |
           if [ -f "pnpm-lock.yaml" ]; then
@@ -117,48 +128,58 @@ jobs:
           fi
 
       - name: Setup pnpm
-        if: steps.detect-pm.outputs.manager == 'pnpm'
+        if: steps.check-project.outputs.is_node == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
         uses: pnpm/action-setup@v4
 
       - name: Setup Bun
-        if: steps.detect-pm.outputs.manager == 'bun'
+        if: steps.check-project.outputs.is_node == 'true' && steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
+        if: steps.check-project.outputs.is_node == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
           cache: ${{ steps.detect-pm.outputs.manager != 'bun' && steps.detect-pm.outputs.manager || '' }}
 
       - name: Install dependencies
+        if: steps.check-project.outputs.is_node == 'true'
         run: ${{ steps.detect-pm.outputs.install_cmd }}
 
-      # Determine which build command to run
+      # Determine which build command to run, or skip if not a buildable project
       - name: Detect build command
         id: detect-build
         run: |
+          # If a custom build command was provided, use it
           if [ -n "${{ inputs.build_command }}" ]; then
             echo "cmd=${{ inputs.build_command }}" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ ! -f "package.json" ]; then
+            # No package.json — not a Node.js project (e.g., iOS, Python)
+            echo "::notice::No package.json found — skipping build step"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             PM="${{ steps.detect-pm.outputs.manager }}"
-            # Check for a 'build' script in package.json
             if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.build ? 0 : 1)"; then
               if [ "$PM" = "npm" ]; then
                 echo "cmd=npm run build" >> "$GITHUB_OUTPUT"
               else
                 echo "cmd=$PM run build" >> "$GITHUB_OUTPUT"
               fi
+              echo "skip=false" >> "$GITHUB_OUTPUT"
             else
-              echo "::error::No 'build' script found in package.json and no custom build_command provided"
-              exit 1
+              echo "::notice::No 'build' script in package.json — skipping build step"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
       - name: Run production build
+        if: steps.detect-build.outputs.skip != 'true'
         run: ${{ steps.detect-build.outputs.cmd }}
 
       # Upload build output for downstream jobs (e.g., e2e, lighthouse)
       - name: Upload build artifacts
+        if: steps.detect-build.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: build-output
