@@ -15,8 +15,9 @@
 #     group with a subset of files.
 
 group:
-  # ── Full standards sync ──────────────────────────────────────────────────
-  # These repos receive all org standard files.
+  # ── Full standards sync (TypeScript / Next.js repos) ───────────────────
+  # These repos receive all org standard files including CI, PR template,
+  # org rules, lefthook, and VS Code settings.
   - files:
       - source: sync/.claude/org-rules.md
         dest: .claude/org-rules.md
@@ -29,16 +30,84 @@ group:
       - source: sync/.vscode/settings.json
         dest: .vscode/settings.json
     repos: |
+      OrrisTech/adwhiz-landing
+      OrrisTech/agent-otp
+      OrrisTech/ai-agent-list
+      OrrisTech/aidp
+      OrrisTech/animent-web
+      OrrisTech/animent-wxapp
+      OrrisTech/antitemp
+      OrrisTech/app-clawface
+      OrrisTech/app-gangxu
+      OrrisTech/app-rhythm-guard
+      OrrisTech/ccapi
+      OrrisTech/changeface
+      OrrisTech/claude-code-container
+      OrrisTech/clawbot
+      OrrisTech/clawdgo
+      OrrisTech/clawface
+      OrrisTech/clawra
+      OrrisTech/conceptviz
+      OrrisTech/dr-agent
+      OrrisTech/focus-voyager
+      OrrisTech/focus-voyager-landing
+      OrrisTech/freelancer
+      OrrisTech/getbgm
+      OrrisTech/huoshan-api
+      OrrisTech/image-uploader
+      OrrisTech/imaginepro-redirect
+      OrrisTech/imaginepro-web
+      OrrisTech/kolfind
+      OrrisTech/kolfind-static
+      OrrisTech/lobe-chat
+      OrrisTech/makevid
+      OrrisTech/mksaas
+      OrrisTech/my-api-adaptor
+      OrrisTech/nanobanana-video
+      OrrisTech/nb2-hub
+      OrrisTech/orris-ai
+      OrrisTech/orris-saas
+      OrrisTech/outreach
+      OrrisTech/poseidea-web
+      OrrisTech/poseup
+      OrrisTech/poseup-mobile
+      OrrisTech/postbloom
+      OrrisTech/pricing-calculator
+      OrrisTech/pricing-slider
+      OrrisTech/reBacklog
       OrrisTech/seomate
+      OrrisTech/sora-api
+      OrrisTech/sora-landing
+      OrrisTech/sora-next-web
+      OrrisTech/sora-web
+      OrrisTech/sora-wrapper-landing
+      OrrisTech/soramaze
+      OrrisTech/stripe-payment-emails
+      OrrisTech/suno-new
+      OrrisTech/sunoapi-web
+      OrrisTech/sunotify
+      OrrisTech/tagphoto
+      OrrisTech/vibe-scene-generator
+      OrrisTech/vibeview
+      OrrisTech/xpeek
 
-  # ── Partial sync (example) ──────────────────────────────────────────────
-  # Uncomment and customize for repos that only need a subset of files.
-  # Useful for repos that have custom CI or non-standard project layouts.
-  #
-  # - files:
-  #     - source: sync/.claude/org-rules.md
-  #       dest: .claude/org-rules.md
-  #     - source: sync/.github/pull_request_template.md
-  #       dest: .github/pull_request_template.md
-  #   repos: |
-  #     OrrisTech/some-other-repo
+  # ── Partial sync (non-TypeScript repos) ────────────────────────────────
+  # These repos only get org rules, PR template, and VS Code settings
+  # (no CI workflow or lefthook since they may not be Node.js projects).
+  - files:
+      - source: sync/.claude/org-rules.md
+        dest: .claude/org-rules.md
+      - source: sync/.github/pull_request_template.md
+        dest: .github/pull_request_template.md
+    repos: |
+      OrrisTech/find-kol-skill
+      OrrisTech/google-ads-api-developer-assistant
+      OrrisTech/imaginepro-mask
+      OrrisTech/orris-cc-context-init
+      OrrisTech/pinterest-autopublish
+      OrrisTech/poseidea
+      OrrisTech/skills
+      OrrisTech/sora-app
+      OrrisTech/turnitpass
+      OrrisTech/zimage-turbo
+      OrrisTech/tokime
