@@ -1,6 +1,6 @@
 # Reusable workflow: Lint & Type Check
 # Runs lint and typecheck scripts from package.json if they exist.
-# Auto-detects package manager (pnpm > bun > npm) by checking lock files.
+# Uses bun as the standard package manager for all OrrisTech repos.
 name: CI - Lint & Type Check
 
 on:
@@ -28,43 +28,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Detect which package manager is in use by checking lock files
-      - name: Detect package manager
-        id: detect-pm
-        run: |
-          if [ -f "pnpm-lock.yaml" ]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
-            echo "manager=bun" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=bun install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup pnpm
-        if: steps.detect-pm.outputs.manager == 'pnpm'
-        uses: pnpm/action-setup@v4
-
       - name: Setup Bun
-        if: steps.detect-pm.outputs.manager == 'bun'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
-          cache: ${{ steps.detect-pm.outputs.manager != 'bun' && steps.detect-pm.outputs.manager || '' }}
 
       - name: Install dependencies
-        run: ${{ steps.detect-pm.outputs.install_cmd }}
+        run: bun install --frozen-lockfile
 
       # Check if a lint script exists before running it
       - name: Check for lint script
         id: check-lint
         run: |
-          if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.lint ? 0 : 1)"; then
+          if bun -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.lint ? 0 : 1)"; then
             echo "has_lint=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_lint=false" >> "$GITHUB_OUTPUT"
@@ -73,19 +52,13 @@ jobs:
 
       - name: Run lint
         if: steps.check-lint.outputs.has_lint == 'true'
-        run: |
-          PM="${{ steps.detect-pm.outputs.manager }}"
-          if [ "$PM" = "npm" ]; then
-            npm run lint
-          else
-            $PM run lint
-          fi
+        run: bun run lint
 
       # Check if a typecheck script exists (supports both "typecheck" and "type-check")
       - name: Check for typecheck script
         id: check-typecheck
         run: |
-          SCRIPT=$(node -e "
+          SCRIPT=$(bun -e "
             const p = require('./package.json');
             const s = p.scripts || {};
             if (s['typecheck']) console.log('typecheck');
@@ -102,11 +75,4 @@ jobs:
 
       - name: Run type check
         if: steps.check-typecheck.outputs.has_typecheck == 'true'
-        run: |
-          PM="${{ steps.detect-pm.outputs.manager }}"
-          SCRIPT="${{ steps.check-typecheck.outputs.script_name }}"
-          if [ "$PM" = "npm" ]; then
-            npm run "$SCRIPT"
-          else
-            $PM run "$SCRIPT"
-          fi
+        run: bun run ${{ steps.check-typecheck.outputs.script_name }}

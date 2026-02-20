@@ -48,18 +48,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Determine if we should run: config file exists OR custom urls were provided
       - name: Check if Lighthouse should run
         id: check-lh
+        env:
+          LH_URLS: ${{ inputs.lighthouse_urls }}
         run: |
           HAS_CONFIG="false"
           if [ -f "lighthouserc.json" ] || [ -f ".lighthouserc.json" ] || [ -f "lighthouserc.js" ] || [ -f "lighthouserc.yml" ]; then
             HAS_CONFIG="true"
           fi
 
-          # Check if custom URLs were provided (anything other than the default)
           CUSTOM_URLS="false"
-          if [ "${{ inputs.lighthouse_urls }}" != "http://localhost:3000" ]; then
+          if [ "$LH_URLS" != "http://localhost:3000" ]; then
             CUSTOM_URLS="true"
           fi
 
@@ -71,27 +71,8 @@ jobs:
             echo "::notice::No Lighthouse config found and no custom URLs provided — skipping audit"
           fi
 
-      - name: Detect package manager
-        if: steps.check-lh.outputs.should_run == 'true'
-        id: detect-pm
-        run: |
-          if [ -f "pnpm-lock.yaml" ]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
-            echo "manager=bun" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=bun install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup pnpm
-        if: steps.check-lh.outputs.should_run == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
-        uses: pnpm/action-setup@v4
-
       - name: Setup Bun
-        if: steps.check-lh.outputs.should_run == 'true' && steps.detect-pm.outputs.manager == 'bun'
+        if: steps.check-lh.outputs.should_run == 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -99,34 +80,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
-          cache: ${{ steps.detect-pm.outputs.manager != 'bun' && steps.detect-pm.outputs.manager || '' }}
 
       - name: Install dependencies
         if: steps.check-lh.outputs.should_run == 'true'
-        run: ${{ steps.detect-pm.outputs.install_cmd }}
+        run: bun install --frozen-lockfile
 
       - name: Install Lighthouse CI
         if: steps.check-lh.outputs.should_run == 'true'
         run: npm install -g @lhci/cli
 
-      # If a lighthouserc config file exists, use it directly
       - name: Run Lighthouse CI (with config)
         if: steps.check-lh.outputs.should_run == 'true' && steps.check-lh.outputs.has_config == 'true'
         run: lhci autorun
 
-      # If no config file, generate a temporary one with the provided URLs and thresholds
       - name: Run Lighthouse CI (with inputs)
         if: steps.check-lh.outputs.should_run == 'true' && steps.check-lh.outputs.has_config == 'false'
+        env:
+          LH_URLS: ${{ inputs.lighthouse_urls }}
+          LH_PERF: ${{ inputs.threshold_performance }}
+          LH_A11Y: ${{ inputs.threshold_accessibility }}
+          LH_SEO: ${{ inputs.threshold_seo }}
         run: |
-          # Convert comma-separated URLs to JSON array
-          URLS_JSON=$(echo '${{ inputs.lighthouse_urls }}' | node -e "
+          URLS_JSON=$(echo "$LH_URLS" | bun -e "
             const input = require('fs').readFileSync('/dev/stdin','utf8').trim();
             const urls = input.split(',').map(u => u.trim()).filter(Boolean);
             console.log(JSON.stringify(urls));
           ")
 
-          # Create a temporary lighthouserc config
-          cat > /tmp/lighthouserc.json << EOF
+          cat > /tmp/lighthouserc.json << LHEOF
           {
             "ci": {
               "collect": {
@@ -135,9 +116,9 @@ jobs:
               },
               "assert": {
                 "assertions": {
-                  "categories:performance": ["warn", { "minScore": ${{ inputs.threshold_performance }} }],
-                  "categories:accessibility": ["error", { "minScore": ${{ inputs.threshold_accessibility }} }],
-                  "categories:seo": ["error", { "minScore": ${{ inputs.threshold_seo }} }]
+                  "categories:performance": ["warn", { "minScore": ${LH_PERF} }],
+                  "categories:accessibility": ["error", { "minScore": ${LH_A11Y} }],
+                  "categories:seo": ["error", { "minScore": ${LH_SEO} }]
                 }
               },
               "upload": {
@@ -145,11 +126,10 @@ jobs:
               }
             }
           }
-          EOF
+          LHEOF
 
           lhci autorun --config=/tmp/lighthouserc.json
 
-      # Upload Lighthouse results as artifacts
       - name: Upload Lighthouse results
         if: steps.check-lh.outputs.should_run == 'true' && always()
         uses: actions/upload-artifact@v4

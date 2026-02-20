@@ -112,27 +112,8 @@ jobs:
             echo "is_node=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Detect package manager
-        if: steps.check-project.outputs.is_node == 'true'
-        id: detect-pm
-        run: |
-          if [ -f "pnpm-lock.yaml" ]; then
-            echo "manager=pnpm" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
-            echo "manager=bun" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=bun install --frozen-lockfile" >> "$GITHUB_OUTPUT"
-          else
-            echo "manager=npm" >> "$GITHUB_OUTPUT"
-            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup pnpm
-        if: steps.check-project.outputs.is_node == 'true' && steps.detect-pm.outputs.manager == 'pnpm'
-        uses: pnpm/action-setup@v4
-
       - name: Setup Bun
-        if: steps.check-project.outputs.is_node == 'true' && steps.detect-pm.outputs.manager == 'bun'
+        if: steps.check-project.outputs.is_node == 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
@@ -140,11 +121,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
-          cache: ${{ steps.detect-pm.outputs.manager != 'bun' && steps.detect-pm.outputs.manager || '' }}
 
       - name: Install dependencies
         if: steps.check-project.outputs.is_node == 'true'
-        run: ${{ steps.detect-pm.outputs.install_cmd }}
+        run: bun install --frozen-lockfile
 
       # Determine which build command to run, or skip if not a buildable project
       - name: Detect build command
@@ -159,13 +139,8 @@ jobs:
             echo "::notice::No package.json found — skipping build step"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            PM="${{ steps.detect-pm.outputs.manager }}"
-            if node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.build ? 0 : 1)"; then
-              if [ "$PM" = "npm" ]; then
-                echo "cmd=npm run build" >> "$GITHUB_OUTPUT"
-              else
-                echo "cmd=$PM run build" >> "$GITHUB_OUTPUT"
-              fi
+            if bun -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts.build ? 0 : 1)"; then
+              echo "cmd=bun run build" >> "$GITHUB_OUTPUT"
               echo "skip=false" >> "$GITHUB_OUTPUT"
             else
               echo "::notice::No 'build' script in package.json — skipping build step"
