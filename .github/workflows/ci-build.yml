@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: ""
+      node_max_old_space_size:
+        description: "Max old space size in MB for Node.js (prevents OOM on large builds)"
+        required: false
+        type: string
+        default: "8192"
 
 jobs:
   build:
@@ -76,6 +81,8 @@ jobs:
       VOLC_SECRETKEY: "ci-placeholder"
       ACCESS_KEY_ID: "ci-placeholder"
       ACCESS_KEY_SECRET: "ci-placeholder"
+      # ── Node.js memory ──
+      NODE_OPTIONS: "--max-old-space-size=${{ inputs.node_max_old_space_size }}"
       # ── Generic fallback ──
       CI: "true"
     steps:
